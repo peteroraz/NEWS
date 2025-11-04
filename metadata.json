@@ -1,0 +1,5 @@
+{
+  "name": "Global News Deep Dive",
+  "description": "An application that uses Gemini to deep-search the internet for news headlines and trending stories from any given country. It categorizes the news, generates a summary essay, and provides professional commentary on individual headlines.",
+  "requestFramePermissions": []
+}
