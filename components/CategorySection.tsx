@@ -2,10 +2,11 @@
 import React from 'react';
 import NewsCard from './NewsCard';
 import { getIconForCategory } from './IconComponents';
+import { Headline } from '../types';
 
 interface CategorySectionProps {
   category: string;
-  headlines: string[];
+  headlines: Headline[];
   commentaries: Record<string, string>;
   loadingCommentary: string | null;
   onGenerateCommentary: (headline: string) => void;
@@ -23,10 +24,10 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, headlines, 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {headlines.map((headline, index) => (
           <NewsCard
-            key={`${category}-${index}`}
+            key={`${category}-${headline.url}-${index}`}
             headline={headline}
-            commentary={commentaries[headline] || null}
-            isLoadingCommentary={loadingCommentary === headline}
+            commentary={commentaries[headline.headline] || null}
+            isLoadingCommentary={loadingCommentary === headline.headline}
             onGenerateCommentary={onGenerateCommentary}
           />
         ))}

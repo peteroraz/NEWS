@@ -16,18 +16,21 @@ const extractJsonFromMarkdown = (text: string): NewsData | null => {
 };
 
 
-export const fetchNewsAndSummary = async (country: string): Promise<NewsData> => {
+export const fetchNewsAndSummary = async (country: string, date?: string | null): Promise<NewsData> => {
   if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable not set");
   }
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+  const dateQuery = date ? `on or around ${date}` : 'latest';
+
   const prompt = `
-    Deep-search the internet for the latest top news headlines and trending stories in ${country}.
-    Format your entire response as a single JSON object inside a markdown code block (\`\`\`json ... \`\`\`).
+    Deep-search the internet for the ${dateQuery} top news headlines and trending stories in ${country}.
+    Format your entire response as a single JSON object inside a markdown code block (\`\`\`json ... \`\`\`.
     The JSON object must have two top-level keys: "summary" and "categories".
-    - The "summary" value must be a concise, well-written summary essay of the overall news landscape in ${country} based on the findings.
-    - The "categories" value must be an object where keys are category names (e.g., "News", "Sports", "Entertainment", "Business", "Politics", "Religion", "Fashion") and values are arrays of headline strings.
+    - The "summary" value must be a concise, well-written summary essay of the overall news landscape in ${country} based on the findings for the specified period.
+    - The "categories" value must be an object where keys are category names (e.g., "News", "Sports", "Entertainment", "Business", "Politics", "Religion", "Fashion") and values are arrays of objects.
+    - Each object in the arrays must have three keys: "headline" (the headline string), "url" (a valid URL to the news article), and "source" (the name of the news publication, e.g., "Reuters", "BBC News").
     Only include categories that have relevant news headlines. Do not include empty categories.
   `;
 

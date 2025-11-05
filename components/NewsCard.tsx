@@ -1,77 +1,99 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { Headline } from '../types';
 import LoadingSpinner from './LoadingSpinner';
-import { ShareIcon } from './IconComponents';
+import Feedback from './Feedback';
+import { ShareIcon, CopyIcon } from './IconComponents';
 
 interface NewsCardProps {
-  headline: string;
+  headline: Headline;
   commentary: string | null;
   isLoadingCommentary: boolean;
   onGenerateCommentary: (headline: string) => void;
 }
 
 const NewsCard: React.FC<NewsCardProps> = ({ headline, commentary, isLoadingCommentary, onGenerateCommentary }) => {
-  const canShare = typeof navigator !== 'undefined' && !!navigator.share;
+  const [copied, setCopied] = useState(false);
 
-  const handleShare = async () => {
-    if (!canShare || !commentary) return;
+  const handleShare = useCallback(async () => {
+    const shareData = {
+      title: headline.headline,
+      text: `Commentary: ${commentary}\n\nSource: ${headline.source}`,
+      url: headline.url,
+    };
 
-    try {
-      await navigator.share({
-        title: `News Commentary: ${headline}`,
-        text: `Headline: ${headline}\n\nAI Commentary:\n${commentary}`,
-        url: window.location.href, // Share the app URL for context
-      });
-    } catch (error) {
-      // User might cancel the share action, so we don't want to show an error.
-      // We can log it for debugging purposes.
-      console.log('Share action was cancelled or failed', error);
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      const textToCopy = `Headline: ${headline.headline}\nCommentary: ${commentary}\nSource: ${headline.source}\nURL: ${headline.url}`;
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+      } catch (err) {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy content.');
+      }
     }
-  };
+  }, [headline, commentary]);
 
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700 transition-all duration-300 hover:border-blue-500 flex flex-col justify-between h-full">
-      <div>
-        <p className="text-gray-200 text-lg">{headline}</p>
+    <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-blue-500/20 hover:ring-1 hover:ring-blue-500/50">
+      <div className="p-6 flex-grow">
+        <a href={headline.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+          <h3 className="font-bold text-lg text-gray-100">{headline.headline}</h3>
+        </a>
+        <p className="text-sm text-gray-400 mt-1">{headline.source}</p>
+
+        {commentary && (
+          <div className="mt-4 p-4 bg-gray-700/50 rounded-lg animate-fade-in">
+            <p className="text-gray-300 whitespace-pre-wrap">{commentary}</p>
+          </div>
+        )}
       </div>
-      
-      <div className="mt-4">
-        {commentary ? (
-          <div>
-            <div className="p-3 bg-gray-700/50 border-l-4 border-blue-400 rounded-r-lg">
-              <p className="text-sm font-semibold text-blue-300 mb-1">Commentary</p>
-              <p className="text-gray-300 whitespace-pre-wrap">{commentary}</p>
+
+      <div className="p-6 pt-0">
+        {!commentary && !isLoadingCommentary && (
+          <button
+            onClick={() => onGenerateCommentary(headline.headline)}
+            className="w-full px-4 py-2 font-semibold text-white bg-gray-600 rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-300"
+          >
+            Generate Commentary
+          </button>
+        )}
+        
+        {isLoadingCommentary && (
+          <div className="flex items-center justify-center w-full px-4 py-2 bg-gray-600 rounded-lg">
+            <LoadingSpinner size="sm" />
+            <span className="ml-2 text-sm">Generating...</span>
+          </div>
+        )}
+
+        {commentary && (
+            <div className="animate-fade-in">
+              <button
+                onClick={handleShare}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-300"
+              >
+                 {copied ? (
+                    <>
+                      <CopyIcon className="h-5 w-5" />
+                      Copied!
+                    </>
+                ) : (
+                    <>
+                     {navigator.share ? <ShareIcon className="h-5 w-5" /> : <CopyIcon className="h-5 w-5" />}
+                     {navigator.share ? 'Share' : 'Copy'}
+                    </>
+                )}
+              </button>
+              <Feedback id={headline.headline} type="commentary" />
             </div>
-            {canShare && (
-              <div className="mt-3 text-right">
-                <button
-                  onClick={handleShare}
-                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-teal-300 bg-teal-900/50 border border-teal-700 rounded-full hover:bg-teal-800/50 transition-colors"
-                  aria-label="Share this news and commentary"
-                >
-                  <ShareIcon className="h-4 w-4 mr-2" />
-                  Share
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-right">
-            <button
-              onClick={() => onGenerateCommentary(headline)}
-              disabled={isLoadingCommentary}
-              className="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-300 bg-blue-900/50 border border-blue-700 rounded-full hover:bg-blue-800/50 disabled:opacity-50 disabled:cursor-wait transition-colors"
-            >
-              {isLoadingCommentary ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span className="ml-2">Generating...</span>
-                </>
-              ) : (
-                'Generate Commentary'
-              )}
-            </button>
-          </div>
         )}
       </div>
     </div>

@@ -1,14 +1,16 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import SearchBar from './components/SearchBar';
 import Summary from './components/Summary';
 import CategorySection from './components/CategorySection';
 import LoadingSpinner from './components/LoadingSpinner';
+import CategoryFilter from './components/CategoryFilter';
 import { fetchNewsAndSummary, generateCommentary } from './services/geminiService';
 import type { CategorizedNews } from './types';
 
 const App: React.FC = () => {
   const [country, setCountry] = useState<string>('');
+  const [searchDate, setSearchDate] = useState<string>('');
   const [categorizedNews, setCategorizedNews] = useState<CategorizedNews | null>(null);
   const [summary, setSummary] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -16,17 +18,21 @@ const App: React.FC = () => {
   
   const [commentaries, setCommentaries] = useState<Record<string, string>>({});
   const [loadingCommentary, setLoadingCommentary] = useState<string | null>(null);
+  
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const handleSearch = useCallback(async (searchCountry: string) => {
+  const handleSearch = useCallback(async (searchCountry: string, date: string) => {
     setLoading(true);
     setError(null);
     setCategorizedNews(null);
     setSummary('');
     setCommentaries({});
     setCountry(searchCountry);
+    setSearchDate(date);
+    setSelectedCategory('all');
 
     try {
-      const data = await fetchNewsAndSummary(searchCountry);
+      const data = await fetchNewsAndSummary(searchCountry, date);
       setSummary(data.summary);
       setCategorizedNews(data.categories);
     } catch (err) {
@@ -49,6 +55,26 @@ const App: React.FC = () => {
     }
   }, []);
   
+  const filteredNews = useMemo(() => {
+    if (!categorizedNews) {
+      return null;
+    }
+    if (selectedCategory === 'all') {
+      return categorizedNews;
+    }
+    // Create a new object for the filtered category to avoid overwriting the original data
+    const filtered: CategorizedNews = {};
+    const lowercasedSelectedCategory = selectedCategory.toLowerCase();
+
+    // Find the category case-insensitively
+    const categoryKey = Object.keys(categorizedNews).find(key => key.toLowerCase() === lowercasedSelectedCategory);
+
+    if (categoryKey && categorizedNews[categoryKey]) {
+      filtered[categoryKey] = categorizedNews[categoryKey];
+    }
+    return filtered;
+  }, [categorizedNews, selectedCategory]);
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -70,10 +96,29 @@ const App: React.FC = () => {
     }
 
     if (categorizedNews) {
+      const availableCategories = Object.keys(categorizedNews);
+      if (availableCategories.length === 0) {
+        return (
+          <div className="text-center mt-20">
+            <h2 className="text-2xl font-semibold text-gray-400">No News Found</h2>
+            <p className="text-gray-500 mt-2">We couldn't find any news for {country} on the selected date. Please try another search.</p>
+          </div>
+        );
+      }
+
       return (
         <div className="mt-12 animate-fade-in">
-          {summary && <Summary summary={summary} country={country} />}
-          {Object.entries(categorizedNews).map(([category, headlines]) => (
+          {summary && <Summary summary={summary} country={country} date={searchDate} />}
+
+          {availableCategories.length > 0 && (
+            <CategoryFilter
+              categories={availableCategories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
+          )}
+          
+          {filteredNews && Object.entries(filteredNews).map(([category, headlines]) => (
             <CategorySection
               key={category}
               category={category}
@@ -117,13 +162,20 @@ const App: React.FC = () => {
       <footer className="text-center py-6 border-t border-gray-800">
         <p className="text-gray-500">Powered by Gemini</p>
       </footer>
-       <style>{`
+       <style>{/* CSS content */`
           @keyframes fade-in {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
           }
           .animate-fade-in {
             animation: fade-in 0.5s ease-out forwards;
+          }
+          /* Improve date picker placeholder text color */
+          input[type="date"]:in-range::-webkit-datetime-edit-year-field,
+          input[type="date"]:in-range::-webkit-datetime-edit-month-field,
+          input[type="date"]:in-range::-webkit-datetime-edit-day-field,
+          input[type="date"]:in-range::-webkit-datetime-edit-text {
+            color: transparent;
           }
         `}</style>
     </div>
