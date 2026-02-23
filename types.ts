@@ -5,6 +5,7 @@ export interface Headline {
   headline: string;
   url: string;
   source: string;
+  imageUrl?: string;
 }
 
 export interface CategorizedNews {
@@ -16,6 +17,8 @@ export interface SocialMediaStory {
   content: string;
   author: string;
   url: string;
+  engagement?: string;
+  imageUrl?: string;
 }
 
 export interface NewsData {

@@ -58,12 +58,12 @@ export const fetchNewsAndSummary = async (country: string, startDate?: string | 
       Format your entire response as a single JSON object inside a markdown code block (\`\`\`json ... \`\`\`).
       The JSON object must have four top-level keys: "summary", "trending", "categories", and "socialMedia".
       - "summary": A concise, well-written summary essay of the overall news landscape in ${country} for the period.
-      - "trending": An array of exactly 5 objects representing the most significant stories across all categories.
+      - "trending": An array of up to 10 objects representing the most significant stories across all categories.
       - "categories": An object where keys are category names. Values MUST be arrays of objects. You MUST include these categories if relevant: "Technology", "Lifestyle", "Investors", "Health", "Education", "Politics", "Business", "Sports", "Entertainment".
-      - "socialMedia": An array of 3-5 objects representing trending discussions or news from X (Twitter), Instagram, and Facebook in ${country}.
+      - "socialMedia": An array of up to 10 objects representing trending discussions or news from X (Twitter), Instagram, and Facebook in ${country}.
       
-      Each object in "trending" and "categories" arrays must have: "headline", "url", and "source".
-      Each object in "socialMedia" must have: "platform" (one of "X", "Instagram", "Facebook"), "content" (the post text or summary), "author" (username or handle), and "url" (direct link).
+      Each object in "trending" and "categories" arrays must have: "headline", "url", "source", and "imageUrl" (a direct link to a relevant image if available, otherwise null).
+      Each object in "socialMedia" must have: "platform" (one of "X", "Instagram", "Facebook"), "content" (the post text or summary), "author" (username or handle), "url" (direct link), "engagement" (a trend score or engagement metric like "High", "1.5k likes", "Viral"), and "imageUrl" (a direct link to a relevant image if available, otherwise null).
     `;
 
     try {

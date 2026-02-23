@@ -49,6 +49,16 @@ const NewsCard: React.FC<NewsCardProps> = ({ headline, commentary, isLoadingComm
       whileHover={{ y: -5 }}
       className="bg-gray-900/40 border border-gray-800 rounded-2xl shadow-lg overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-blue-500/10 hover:border-blue-500/30 backdrop-blur-sm"
     >
+      {headline.imageUrl && (
+        <div className="h-48 w-full overflow-hidden">
+          <img 
+            src={headline.imageUrl} 
+            alt={headline.headline}
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      )}
       <div className="p-6 flex-grow">
         <div className="flex justify-between items-start mb-4">
           <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] bg-blue-500/10 px-2 py-1 rounded">
