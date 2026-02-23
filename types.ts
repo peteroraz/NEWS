@@ -1,3 +1,6 @@
+
+export type CommentaryTone = 'neutral' | 'analytical' | 'critical' | 'optimistic';
+
 export interface Headline {
   headline: string;
   url: string;
@@ -10,6 +13,7 @@ export interface CategorizedNews {
 
 export interface NewsData {
   summary: string;
+  trending: Headline[];
   categories: CategorizedNews;
 }
 
