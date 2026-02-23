@@ -56,17 +56,19 @@ export const fetchNewsAndSummary = async (country: string, startDate?: string | 
     const prompt = `
       Deep-search the internet for the ${dateQuery} top news headlines and trending stories in ${country}.
       Format your entire response as a single JSON object inside a markdown code block (\`\`\`json ... \`\`\`).
-      The JSON object must have three top-level keys: "summary", "trending", and "categories".
-      - The "summary" value must be a concise, well-written summary essay of the overall news landscape in ${country} based on the findings for the specified period.
-      - The "trending" value must be an array of exactly 5 objects representing the most significant or trending stories across all categories.
-      - The "categories" value must be an object where keys are category names (e.g., "News", "Sports", "Entertainment", "Business", "Politics", "Religion", "Fashion") and values are arrays of objects.
-      - Each object in the arrays must have three keys: "headline" (the headline string), "url" (a valid URL to the news article), and "source" (the name of the news publication).
-      Only include categories that have relevant news headlines.
+      The JSON object must have four top-level keys: "summary", "trending", "categories", and "socialMedia".
+      - "summary": A concise, well-written summary essay of the overall news landscape in ${country} for the period.
+      - "trending": An array of exactly 5 objects representing the most significant stories across all categories.
+      - "categories": An object where keys are category names. Values MUST be arrays of objects. You MUST include these categories if relevant: "Technology", "Lifestyle", "Investors", "Health", "Education", "Politics", "Business", "Sports", "Entertainment".
+      - "socialMedia": An array of 3-5 objects representing trending discussions or news from X (Twitter), Instagram, and Facebook in ${country}.
+      
+      Each object in "trending" and "categories" arrays must have: "headline", "url", and "source".
+      Each object in "socialMedia" must have: "platform" (one of "X", "Instagram", "Facebook"), "content" (the post text or summary), "author" (username or handle), and "url" (direct link).
     `;
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.1-pro-preview',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           tools: [{ googleSearch: {} }],
@@ -78,7 +80,7 @@ export const fetchNewsAndSummary = async (country: string, startDate?: string | 
       }
 
       const newsData = extractJsonFromMarkdown(response.text);
-      if (!newsData || !newsData.summary || !newsData.categories || !newsData.trending) {
+      if (!newsData || !newsData.summary || !newsData.categories || !newsData.trending || !newsData.socialMedia) {
           throw new Error("Invalid data structure received from AI.");
       }
       return newsData;
@@ -109,9 +111,6 @@ export const generateCommentary = async (headline: string, tone: CommentaryTone 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-            thinkingConfig: { thinkingBudget: 0 } // Disable thinking for quick commentary tasks to reduce proxy load
-        }
       });
       
       const text = response.text;

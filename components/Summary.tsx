@@ -1,7 +1,8 @@
 
 import React from 'react';
 import Feedback from './Feedback';
-import { WhatsAppIcon, LinkedInIcon, ShareIcon } from './IconComponents';
+import { WhatsAppIcon, LinkedInIcon, ShareIcon, XIcon, FacebookIcon } from './IconComponents';
+import { motion } from 'motion/react';
 
 interface SummaryProps {
   summary: string;
@@ -33,53 +34,90 @@ const Summary: React.FC<SummaryProps> = ({ summary, country, startDate, endDate 
 
   const shareSummary = `🌎 *Global News Report: ${country}*\n📅 Period: ${formattedDate}\n\n*Summary Insights:*\n${summary.slice(0, 500)}...\n\n_Generated via Global News Deep Dive_`;
 
-  const handleWhatsApp = () => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareSummary)}`, '_blank');
-  };
-
-  const handleLinkedIn = () => {
-    window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareSummary)}`, '_blank');
+  const handleShare = (platform: string) => {
+    let url = '';
+    switch (platform) {
+      case 'whatsapp':
+        url = `https://wa.me/?text=${encodeURIComponent(shareSummary)}`;
+        break;
+      case 'linkedin':
+        url = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareSummary)}`;
+        break;
+      case 'x':
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareSummary)}`;
+        break;
+      case 'facebook':
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(shareSummary)}`;
+        break;
+    }
+    if (url) window.open(url, '_blank');
   };
 
   return (
-    <section className="mb-12 bg-gray-800/50 border border-gray-700 p-6 md:p-8 rounded-2xl shadow-xl relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
+    <motion.section 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="mb-12 bg-gray-900/60 border border-gray-800 p-8 md:p-10 rounded-[2rem] shadow-2xl relative overflow-hidden backdrop-blur-xl"
+    >
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full -mr-32 -mt-32"></div>
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/5 blur-[80px] rounded-full -ml-24 -mb-24"></div>
       
-      <h2 className="text-3xl font-bold text-gray-100 relative z-10">
-        News Summary for <span className="text-blue-400">{country}</span>
-      </h2>
-      <p className="text-gray-400 mb-6 relative z-10">Period: {formattedDate}</p>
-      
-      <div className="prose prose-invert max-w-none text-gray-300 leading-relaxed relative z-10">
-        {summary.split('\n').map((paragraph, index) => (
-          <p key={index} className="mb-4">{paragraph}</p>
-        ))}
-      </div>
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-px flex-grow bg-gradient-to-r from-transparent to-blue-500/30"></div>
+          <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.4em]">Executive Summary</span>
+          <div className="h-px flex-grow bg-gradient-to-l from-transparent to-blue-500/30"></div>
+        </div>
 
-      <div className="mt-8 pt-6 border-t border-gray-700/50 flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
-        <div className="flex flex-col gap-2 w-full sm:w-auto">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Share Report</span>
-          <div className="flex gap-2">
-            <button
-              onClick={handleWhatsApp}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600/20 text-green-400 border border-green-600/30 rounded-full hover:bg-green-600 hover:text-white transition-all text-sm font-semibold"
-            >
-              <WhatsAppIcon className="h-4 w-4" /> WhatsApp
-            </button>
-            <button
-              onClick={handleLinkedIn}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-full hover:bg-blue-600 hover:text-white transition-all text-sm font-semibold"
-            >
-              <LinkedInIcon className="h-4 w-4" /> LinkedIn
-            </button>
+        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-2 italic">
+          {country} <span className="text-blue-500">Intelligence</span>
+        </h2>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-10">Analysis Period: {formattedDate}</p>
+        
+        <div className="prose prose-invert max-w-none text-gray-300 leading-relaxed space-y-6 text-lg font-medium">
+          {summary.split('\n').map((paragraph, index) => (
+            <p key={index} className={index === 0 ? "first-letter:text-4xl first-letter:font-black first-letter:text-blue-500 first-letter:mr-1 first-letter:float-left" : ""}>{paragraph}</p>
+          ))}
+        </div>
+
+        <div className="mt-12 pt-10 border-t border-gray-800/50 grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div>
+            <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-6">Distribute Intelligence</h3>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => handleShare('whatsapp')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-green-600/10 text-green-400 border border-green-600/20 rounded-xl hover:bg-green-600 hover:text-white transition-all text-xs font-black uppercase tracking-widest"
+              >
+                <WhatsAppIcon className="h-4 w-4" /> WhatsApp
+              </button>
+              <button
+                onClick={() => handleShare('linkedin')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600/10 text-blue-400 border border-blue-600/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all text-xs font-black uppercase tracking-widest"
+              >
+                <LinkedInIcon className="h-4 w-4" /> LinkedIn
+              </button>
+              <button
+                onClick={() => handleShare('x')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-gray-300 border border-gray-700 rounded-xl hover:bg-white hover:text-black transition-all text-xs font-black uppercase tracking-widest"
+              >
+                <XIcon className="h-4 w-4" /> X
+              </button>
+              <button
+                onClick={() => handleShare('facebook')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-700/10 text-blue-500 border border-blue-700/20 rounded-xl hover:bg-blue-700 hover:text-white transition-all text-xs font-black uppercase tracking-widest"
+              >
+                <FacebookIcon className="h-4 w-4" /> Facebook
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-6">Engagement Metrics</h3>
+            <Feedback id={feedbackId} type="summary" />
           </div>
         </div>
-        
-        <div className="w-full sm:w-1/3">
-          <Feedback id={feedbackId} type="summary" />
-        </div>
       </div>
-    </section>
+    </motion.section>
   );
 };
 

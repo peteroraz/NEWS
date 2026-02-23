@@ -3,7 +3,8 @@ import React, { useState, useCallback } from 'react';
 import { Headline, CommentaryTone } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import Feedback from './Feedback';
-import { ShareIcon, CopyIcon, WhatsAppIcon, LinkedInIcon } from './IconComponents';
+import { ShareIcon, CopyIcon, WhatsAppIcon, LinkedInIcon, XIcon, FacebookIcon } from './IconComponents';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface NewsCardProps {
   headline: Headline;
@@ -15,125 +16,126 @@ interface NewsCardProps {
 const NewsCard: React.FC<NewsCardProps> = ({ headline, commentary, isLoadingCommentary, onGenerateCommentary }) => {
   const [copied, setCopied] = useState(false);
   const [selectedTone, setSelectedTone] = useState<CommentaryTone>('analytical');
+  const [showShareOptions, setShowShareOptions] = useState(false);
 
   const shareText = `📰 *Global News Deep Dive Analysis*\n\n*Headline:* ${headline.headline}\n\n*Source:* ${headline.source}\n\n*AI Insight (${selectedTone}):*\n${commentary || 'Generating...'}\n\nRead more: ${headline.url}`;
 
-  const handleShare = useCallback(async () => {
-    const shareData = {
-      title: headline.headline,
-      text: `Insight: ${commentary}\nSource: ${headline.source}`,
-      url: headline.url,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    } else {
-      const textToCopy = `Headline: ${headline.headline}\nInsight: ${commentary}\nSource: ${headline.source}\nURL: ${headline.url}`;
-      try {
-        await navigator.clipboard.writeText(textToCopy);
+  const handleShare = (platform: string) => {
+    let url = '';
+    switch (platform) {
+      case 'whatsapp':
+        url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+        break;
+      case 'linkedin':
+        url = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText)}`;
+        break;
+      case 'x':
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        break;
+      case 'facebook':
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(headline.url)}&quote=${encodeURIComponent(shareText)}`;
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(shareText);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy: ', err);
-      }
+        return;
     }
-  }, [headline, commentary]);
-
-  const handleWhatsAppShare = () => {
-    const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleLinkedInShare = () => {
-    // LinkedIn sharing usually works best with just a URL, but we can try to prompt a feed share with text
-    const url = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText)}`;
-    window.open(url, '_blank');
+    if (url) window.open(url, '_blank');
   };
 
   return (
-    <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-blue-500/20 hover:ring-1 hover:ring-blue-500/50">
+    <motion.div 
+      whileHover={{ y: -5 }}
+      className="bg-gray-900/40 border border-gray-800 rounded-2xl shadow-lg overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-blue-500/10 hover:border-blue-500/30 backdrop-blur-sm"
+    >
       <div className="p-6 flex-grow">
-        <a href={headline.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-          <h3 className="font-bold text-lg text-gray-100 leading-snug">{headline.headline}</h3>
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] bg-blue-500/10 px-2 py-1 rounded">
+            {headline.source}
+          </span>
+          <button 
+            onClick={() => setShowShareOptions(!showShareOptions)}
+            className="text-gray-500 hover:text-blue-400 transition-colors"
+          >
+            <ShareIcon className="h-4 w-4" />
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {showShareOptions && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex gap-2 mb-4 overflow-hidden"
+            >
+              <button onClick={() => handleShare('whatsapp')} className="p-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600 hover:text-white transition-all"><WhatsAppIcon className="h-4 w-4" /></button>
+              <button onClick={() => handleShare('linkedin')} className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-all"><LinkedInIcon className="h-4 w-4" /></button>
+              <button onClick={() => handleShare('x')} className="p-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-white hover:text-black transition-all"><XIcon className="h-4 w-4" /></button>
+              <button onClick={() => handleShare('facebook')} className="p-2 bg-blue-700/20 text-blue-500 rounded-lg hover:bg-blue-700 hover:text-white transition-all"><FacebookIcon className="h-4 w-4" /></button>
+              <button onClick={() => handleShare('copy')} className="p-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all">
+                {copied ? <span className="text-[10px] font-bold">COPIED</span> : <CopyIcon className="h-4 w-4" />}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <a href={headline.url} target="_blank" rel="noopener noreferrer" className="group">
+          <h3 className="font-bold text-lg text-gray-100 leading-snug group-hover:text-blue-400 transition-colors">{headline.headline}</h3>
         </a>
-        <p className="text-sm text-gray-400 mt-2 flex items-center gap-2">
-          <span className="bg-gray-700 px-2 py-0.5 rounded text-xs uppercase tracking-wider">{headline.source}</span>
-        </p>
 
         {commentary && (
-          <div className="mt-4 p-4 bg-gray-700/50 border-l-4 border-blue-500 rounded-r-lg animate-fade-in">
-             <div className="text-xs text-blue-400 font-bold uppercase mb-1 tracking-widest">{selectedTone} Commentary</div>
-            <p className="text-gray-300 whitespace-pre-wrap text-sm italic">"{commentary}"</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="mt-6 p-5 bg-blue-500/5 border-l-2 border-blue-500 rounded-r-2xl relative"
+          >
+            <div className="text-[9px] font-black text-blue-400 uppercase mb-2 tracking-[0.3em]">{selectedTone} Perspective</div>
+            <p className="text-gray-300 text-sm italic leading-relaxed">"{commentary}"</p>
+          </motion.div>
         )}
       </div>
 
       <div className="p-6 pt-0">
         {!commentary && !isLoadingCommentary && (
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-1 justify-center bg-gray-900/50 p-1 rounded-lg border border-gray-700">
+            <div className="flex flex-wrap gap-1 justify-center bg-gray-950/50 p-1 rounded-xl border border-gray-800">
               {(['neutral', 'analytical', 'critical', 'optimistic'] as CommentaryTone[]).map((tone) => (
                 <button
                   key={tone}
                   onClick={() => setSelectedTone(tone)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                    selectedTone === tone ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
+                  className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                    selectedTone === tone ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
-                  {tone.charAt(0).toUpperCase() + tone.slice(1)}
+                  {tone}
                 </button>
               ))}
             </div>
             <button
               onClick={() => onGenerateCommentary(headline.headline, selectedTone)}
-              className="w-full px-4 py-2 font-semibold text-white bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-lg hover:bg-blue-600 hover:text-white focus:outline-none transition-all duration-300"
+              className="w-full px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition-all duration-300 shadow-lg shadow-blue-600/10"
             >
-              Analyze with {selectedTone.charAt(0).toUpperCase() + selectedTone.slice(1)} Lens
+              Analyze Narrative
             </button>
           </div>
         )}
         
         {isLoadingCommentary && (
-          <div className="flex items-center justify-center w-full px-4 py-2 bg-gray-700/50 rounded-lg border border-gray-600">
+          <div className="flex items-center justify-center w-full py-4 bg-gray-950/50 rounded-xl border border-gray-800">
             <LoadingSpinner size="sm" />
-            <span className="ml-2 text-sm text-gray-400 animate-pulse">Consulting Gemini...</span>
+            <span className="ml-3 text-[10px] font-black text-gray-500 uppercase tracking-widest animate-pulse">Consulting Intelligence...</span>
           </div>
         )}
 
         {commentary && (
-            <div className="animate-fade-in space-y-3">
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={handleWhatsAppShare}
-                  title="Share on WhatsApp"
-                  className="flex items-center justify-center p-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <WhatsAppIcon className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={handleLinkedInShare}
-                  title="Share on LinkedIn"
-                  className="flex items-center justify-center p-2 text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors"
-                >
-                  <LinkedInIcon className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={handleShare}
-                  title={navigator.share ? "System Share" : "Copy to Clipboard"}
-                  className="flex items-center justify-center p-2 text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                   {copied ? <CopyIcon className="h-5 w-5 text-green-400" /> : (navigator.share ? <ShareIcon className="h-5 w-5" /> : <CopyIcon className="h-5 w-5" />)}
-                </button>
-              </div>
-              <Feedback id={headline.headline} type="commentary" />
-            </div>
+          <div className="mt-4">
+            <Feedback id={headline.headline} type="commentary" />
+          </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Headline } from '../types';
 import { TrendingUpIcon } from './IconComponents';
+import { motion } from 'motion/react';
 
 interface TrendingStoriesProps {
   stories: Headline[];
@@ -22,9 +23,12 @@ const TrendingStories: React.FC<TrendingStoriesProps> = ({ stories }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {stories.slice(0, 5).map((story, index) => (
-          <a
+        {Array.isArray(stories) && stories.slice(0, 5).map((story, index) => (
+          <motion.a
             key={`${story.url}-${index}`}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.05 }}
             href={story.url}
             target="_blank"
             rel="noopener noreferrer"
@@ -46,7 +50,7 @@ const TrendingStories: React.FC<TrendingStoriesProps> = ({ stories }) => {
 
             {/* Hover Indicator */}
             <div className="absolute top-0 left-0 w-1 h-0 bg-blue-500 group-hover:h-full transition-all duration-500" />
-          </a>
+          </motion.a>
         ))}
       </div>
     </section>

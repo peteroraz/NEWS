@@ -6,18 +6,39 @@ const FEEDBACK_STORAGE_KEY = 'newsAppFeedback';
  * Saves a new feedback entry to localStorage.
  * @param feedback - The feedback object to save, without the timestamp.
  */
-export const saveFeedback = (feedback: Omit<FeedbackData, 'timestamp'>): void => {
+export const saveFeedback = (feedback: Partial<FeedbackData> & { id: string }): void => {
   try {
     const existingFeedback = getAllFeedback();
-    const newFeedback: FeedbackData = {
-      ...feedback,
-      timestamp: new Date().toISOString(),
-    };
-    const updatedFeedback = [...existingFeedback, newFeedback];
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(updatedFeedback));
+    const index = existingFeedback.findIndex(f => f.id === feedback.id);
+    
+    if (index !== -1) {
+      existingFeedback[index] = {
+        ...existingFeedback[index],
+        ...feedback,
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      const newFeedback: FeedbackData = {
+        id: feedback.id,
+        type: feedback.type || 'commentary',
+        rating: feedback.rating || null,
+        comment: feedback.comment || '',
+        likes: feedback.likes || 0,
+        comments: feedback.comments || [],
+        timestamp: new Date().toISOString(),
+      };
+      existingFeedback.push(newFeedback);
+    }
+    
+    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(existingFeedback));
   } catch (error) {
     console.error("Failed to save feedback to localStorage", error);
   }
+};
+
+export const getFeedbackById = (id: string): FeedbackData | null => {
+  const all = getAllFeedback();
+  return all.find(f => f.id === id) || null;
 };
 
 /**

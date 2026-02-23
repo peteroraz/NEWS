@@ -6,8 +6,11 @@ import CategorySection from './components/CategorySection';
 import LoadingSpinner from './components/LoadingSpinner';
 import CategoryFilter from './components/CategoryFilter';
 import TrendingStories from './components/TrendingStories';
+import SocialMediaSection from './components/SocialMediaSection';
 import { fetchNewsAndSummary, generateCommentary } from './services/geminiService';
-import type { CategorizedNews, CommentaryTone, Headline } from './types';
+import type { CategorizedNews, CommentaryTone, Headline, SocialMediaStory, NewsData } from './types';
+import { motion, AnimatePresence } from 'motion/react';
+import { BackIcon } from './components/IconComponents';
 
 const App: React.FC = () => {
   const [country, setCountry] = useState<string>('');
@@ -15,6 +18,7 @@ const App: React.FC = () => {
   const [searchEndDate, setSearchEndDate] = useState<string>('');
   const [categorizedNews, setCategorizedNews] = useState<CategorizedNews | null>(null);
   const [trendingNews, setTrendingNews] = useState<Headline[]>([]);
+  const [socialMediaNews, setSocialMediaNews] = useState<SocialMediaStory[]>([]);
   const [summary, setSummary] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,12 +27,16 @@ const App: React.FC = () => {
   const [loadingCommentary, setLoadingCommentary] = useState<string | null>(null);
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchHistory, setSearchHistory] = useState<NewsData[]>([]);
+
+  const reportId = useMemo(() => Math.random().toString(36).substring(7).toUpperCase(), [country]);
 
   const handleSearch = useCallback(async (searchCountry: string, startDate: string, endDate: string) => {
     setLoading(true);
     setError(null);
     setCategorizedNews(null);
     setTrendingNews([]);
+    setSocialMediaNews([]);
     setSummary('');
     setCommentaries({});
     setCountry(searchCountry);
@@ -41,12 +49,33 @@ const App: React.FC = () => {
       setSummary(data.summary);
       setCategorizedNews(data.categories);
       setTrendingNews(data.trending);
+      setSocialMediaNews(data.socialMedia);
+      
+      // Save to history for "Go Back"
+      setSearchHistory(prev => [data, ...prev.slice(0, 4)]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleGoBack = () => {
+    if (searchHistory.length > 1) {
+      const previous = searchHistory[1];
+      setSummary(previous.summary);
+      setCategorizedNews(previous.categories);
+      setTrendingNews(previous.trending);
+      setSocialMediaNews(previous.socialMedia);
+      setSearchHistory(prev => prev.slice(1));
+    } else {
+      setCategorizedNews(null);
+      setTrendingNews([]);
+      setSocialMediaNews([]);
+      setSummary('');
+      setSearchHistory([]);
+    }
+  };
 
   const handleGenerateCommentary = useCallback(async (headline: string, tone: CommentaryTone) => {
     setLoadingCommentary(headline);
@@ -83,8 +112,14 @@ const App: React.FC = () => {
       return (
         <div className="flex flex-col items-center justify-center text-center mt-20">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-xl text-gray-300">Scanning global networks for {country}...</p>
-          <p className="text-gray-500 italic">Assembling intelligence report. This may take a moment.</p>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4"
+          >
+            <p className="text-xl text-gray-300">Scanning global networks for {country}...</p>
+            <p className="text-gray-500 italic">Assembling intelligence report. This may take a moment.</p>
+          </motion.div>
         </div>
       );
     }
@@ -94,6 +129,12 @@ const App: React.FC = () => {
         <div className="mt-20 text-center bg-red-900/50 border border-red-700 p-6 rounded-lg max-w-lg mx-auto">
           <h3 className="text-xl font-bold text-red-300">Intelligence Fetch Failure</h3>
           <p className="text-red-400 mt-2">{error}</p>
+          <button 
+            onClick={() => setError(null)}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       );
     }
@@ -105,19 +146,43 @@ const App: React.FC = () => {
           <div className="text-center mt-20">
             <h2 className="text-2xl font-semibold text-gray-400">No News Found</h2>
             <p className="text-gray-500 mt-2">The digital archives are quiet for {country} in this period. Try a different date range or region.</p>
+            <button 
+              onClick={handleGoBack}
+              className="mt-6 flex items-center gap-2 mx-auto text-blue-400 hover:text-blue-300 transition-colors font-bold uppercase text-xs tracking-widest"
+            >
+              <BackIcon className="h-4 w-4" /> Go Back
+            </button>
           </div>
         );
       }
 
       return (
-        <div className="mt-12 animate-fade-in space-y-12">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-12 space-y-12"
+        >
+          <div className="flex justify-between items-center">
+            <button 
+              onClick={handleGoBack}
+              className="flex items-center gap-2 text-gray-500 hover:text-blue-400 transition-colors font-bold uppercase text-[10px] tracking-[0.2em]"
+            >
+              <BackIcon className="h-4 w-4" /> Go Back
+            </button>
+            <div className="text-[10px] font-black text-blue-500/50 uppercase tracking-[0.3em]">
+              Report ID: {reportId}
+            </div>
+          </div>
+
           {summary && <Summary summary={summary} country={country} startDate={searchStartDate} endDate={searchEndDate} />}
 
           {trendingNews && trendingNews.length > 0 && <TrendingStories stories={trendingNews} />}
 
+          {socialMediaNews && socialMediaNews.length > 0 && <SocialMediaSection stories={socialMediaNews} />}
+
           {availableCategories.length > 0 && (
             <div className="flex flex-col items-center">
-               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Filter by category</h3>
+               <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-6">Intelligence Filter</h3>
               <CategoryFilter
                 categories={availableCategories}
                 selectedCategory={selectedCategory}
@@ -126,29 +191,35 @@ const App: React.FC = () => {
             </div>
           )}
           
-          {filteredNews && Object.entries(filteredNews).map(([category, headlines]) => (
-            <CategorySection
-              key={category}
-              category={category}
-              headlines={headlines}
-              commentaries={commentaries}
-              loadingCommentary={loadingCommentary}
-              onGenerateCommentary={handleGenerateCommentary}
-            />
-          ))}
-        </div>
+          <div className="space-y-16">
+            {filteredNews && Object.entries(filteredNews).map(([category, headlines]) => (
+              <CategorySection
+                key={category}
+                category={category}
+                headlines={headlines}
+                commentaries={commentaries}
+                loadingCommentary={loadingCommentary}
+                onGenerateCommentary={handleGenerateCommentary}
+              />
+            ))}
+          </div>
+        </motion.div>
       );
     }
 
     return (
       <div className="text-center mt-20 flex flex-col items-center">
-        <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-20 h-20 bg-blue-500/10 rounded-3xl flex items-center justify-center mb-8 border border-blue-500/20 shadow-2xl shadow-blue-500/10"
+        >
+           <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
            </svg>
-        </div>
-        <h2 className="text-2xl font-semibold text-gray-400">Ready to Deep Dive?</h2>
-        <p className="text-gray-500 mt-2 max-w-sm">Select a nation to analyze real-time headlines and trending narratives through AI-driven lenses.</p>
+        </motion.div>
+        <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Ready to Deep Dive?</h2>
+        <p className="text-gray-500 mt-4 max-w-sm leading-relaxed">Select a nation to analyze real-time headlines and trending narratives through AI-driven lenses.</p>
       </div>
     );
   };
@@ -178,36 +249,8 @@ const App: React.FC = () => {
            <div className="h-1 w-1 rounded-full bg-blue-400"></div>
            <div className="h-1 w-1 rounded-full bg-blue-300"></div>
         </div>
-        <p className="text-gray-500 text-sm font-medium tracking-widest uppercase">Powered by Gemini 2.5 Intelligence</p>
+        <p className="text-gray-500 text-sm font-medium tracking-widest uppercase">Powered by Gemini 3.1 Intelligence</p>
       </footer>
-       <style>{/* CSS content */`
-          @keyframes fade-in {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-in {
-            animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          }
-          input[type="date"]:in-range::-webkit-datetime-edit-year-field,
-          input[type="date"]:in-range::-webkit-datetime-edit-month-field,
-          input[type="date"]:in-range::-webkit-datetime-edit-day-field,
-          input[type="date"]:in-range::-webkit-datetime-edit-text {
-            color: transparent;
-          }
-          ::-webkit-scrollbar {
-            width: 8px;
-          }
-          ::-webkit-scrollbar-track {
-            background: #111827;
-          }
-          ::-webkit-scrollbar-thumb {
-            background: #374151;
-            border-radius: 10px;
-          }
-          ::-webkit-scrollbar-thumb:hover {
-            background: #4b5563;
-          }
-        `}</style>
     </div>
   );
 };
